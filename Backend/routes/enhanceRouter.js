@@ -22,14 +22,10 @@ function getLatestFile(dirPath) {
 
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
-    const dir = path.join(__dirname, "../ESRGAN/LR");
-    if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
-    cb(null, dir);
+    cb(null, "/tmp/uploads");
   },
   filename: (req, file, cb) => {
-    const ext = path.extname(file.originalname);
-    const filename = `${Date.now()}-${file.fieldname}${ext}`;
-    cb(null, filename);
+    cb(null, `${Date.now()}-${file.originalname}`);
   },
 });
 const upload = multer({ storage });
@@ -63,18 +59,20 @@ router.post("/enhance", async (req, res) => {
 router.post("/upload", upload.single("image"), (req, res) => {
   try {
     if (!req.file) {
-      return res.status(400).json({ error: "No file uploaded" });
+      console.error("No image provided in upload request");
+      return res.status(400).json({ error: "No image provided" });
     }
-
-    const imagePath = `/ESRGAN/LR/${req.file.filename}`;
-    return res.status(200).json({
+    const filename = req.file.filename;
+    const filePath = `/tmp/uploads/${filename}`;
+    console.log("Uploaded file:", filename, "to", filePath);
+    res.status(200).json({
       message: "Image uploaded successfully",
-      filename: req.file.filename,
-      path: imagePath,
+      filename,
+      path: filePath,
     });
-  } catch (err) {
-    console.error("Upload error:", err);
-    return res.status(500).json({ error: "Server error" });
+  } catch (error) {
+    console.error("Upload error:", error.message);
+    res.status(500).json({ error: "Failed to upload image", details: error.message });
   }
 });
 
